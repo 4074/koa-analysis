@@ -101,7 +101,7 @@ class Application extends Emitter {
 
 Application 继承于 Emitter，方便后面使用事件机制实现观察者模式。
 
-构造函数对传入参数 `options` 进行消费，同时初始化 context、request、response
+构造函数对传入参数 `options` 进行消费，同时初始化 context、request、response、middleware
 
 `options` 参数解析
 
@@ -111,3 +111,68 @@ Application 继承于 Emitter，方便后面使用事件机制实现观察者模
 | proxy | `false` | 是否信任代理的 headers |
 | keys | `undefined` | cookie 生成使用的 keys |
 | subdomainOffset | 2 | Subdomain offset |
+
+
+
+
+**listen**
+
+listen 方法很简单，创建了 http server，然后直接暴露 server 的 listen 方法。
+
+这有一个很特别的做法，application 并不持有创建出来的 server。即使后续不是再使用到，一般做法也会加到上下文里。
+在这里就是 `this.server = ...`
+
+```javascript
+/**
+   * Shorthand for:
+   *
+   *    http.createServer(app.callback()).listen(...)
+   *
+   * @param {Mixed} ...
+   * @return {Server}
+   * @api public
+   */
+
+  listen(...args) {
+    debug('listen');
+    const server = http.createServer(this.callback());
+    return server.listen(...args);
+  }
+```
+
+**toJSON/inspect**
+
+这两个方法用于类似，就放在一起看。
+
+inspect 就是暴露给外部 debug 时转换为简单数据的方法，这里的做法是直接调用了 toJSON。
+
+toJSON 则是将 application 中有效信息制作成简单数据，包括 this 及一些配置，这里使用了 `only` 包
+
+```javascript
+/**
+   * Return JSON representation.
+   * We only bother showing settings.
+   *
+   * @return {Object}
+   * @api public
+   */
+
+  toJSON() {
+    return only(this, [
+      'subdomainOffset',
+      'proxy',
+      'env'
+    ]);
+  }
+
+  /**
+   * Inspect implementation.
+   *
+   * @return {Object}
+   * @api public
+   */
+
+  inspect() {
+    return this.toJSON();
+  }
+```
