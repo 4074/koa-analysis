@@ -176,3 +176,87 @@ toJSON 则是将 application 中有效信息制作成简单数据，包括 this 
     return this.toJSON();
   }
 ```
+
+**use**
+
+这是最常用的方法，将一个 function 作为 middleware 加入 application 的执行队列里。
+
+这个方法很简单，直接将 `fn` push 到 middleware 数组。
+
+```
+/**
+   * Use the given middleware `fn`.
+   *
+   * Old-style middleware will be converted.
+   *
+   * @param {Function} fn
+   * @return {Application} self
+   * @api public
+   */
+
+  use(fn) {
+    if (typeof fn !== 'function') throw new TypeError('middleware must be a function!');
+    if (isGeneratorFunction(fn)) {
+      deprecate('Support for generators will be removed in v3. ' +
+                'See the documentation for examples of how to convert old middleware ' +
+                'https://github.com/koajs/koa/blob/master/docs/migration.md');
+      fn = convert(fn);
+    }
+    debug('use %s', fn._name || fn.name || '-');
+    this.middleware.push(fn);
+    return this;
+  }
+```
+
+**callback**
+
+创建 http server 时执行，生成 request handler，执行过程：
+- 使用 compose 包，将 middleware array 打成嵌套执行结构，得到 fn
+- 通过 http server 运行时的 req，res 构造得到 context
+- 调用原型方法 handleRequest，将 context，fn 传入
+
+最后返回 handler。
+
+*这里 compose 包是关键*
+
+```
+/**
+   * Return a request handler callback
+   * for node's native http server.
+   *
+   * @return {Function}
+   * @api public
+   */
+
+  callback() {
+    const fn = compose(this.middleware);
+
+    if (!this.listenerCount('error')) this.on('error', this.onerror);
+
+    const handleRequest = (req, res) => {
+      const ctx = this.createContext(req, res);
+      return this.handleRequest(ctx, fn);
+    };
+
+    return handleRequest;
+  }
+```
+
+**handleRequest**
+
+```
+  /**
+   * Handle request in callback.
+   *
+   * @api private
+   */
+
+  handleRequest(ctx, fnMiddleware) {
+    const res = ctx.res;
+    res.statusCode = 404;
+    const onerror = err => ctx.onerror(err);
+    const handleResponse = () => respond(ctx);
+    onFinished(res, onerror);
+    return fnMiddleware(ctx).then(handleResponse).catch(onerror);
+  }
+```
