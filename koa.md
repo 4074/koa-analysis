@@ -211,7 +211,7 @@ toJSON 则是将 application 中有效信息制作成简单数据，包括 this 
 **callback**
 
 创建 http server 时执行，生成 request handler，执行过程：
-- 使用 compose 包，将 middleware array 打成嵌套执行结构，得到 fn
+- 使用 compose 包，将 middleware array 打成嵌套执行结构，得到 `fn: (ctx: Context) => Promise`
 - 通过 http server 运行时的 req，res 构造得到 context
 - 调用原型方法 handleRequest，将 context，fn 传入
 
@@ -243,6 +243,22 @@ toJSON 则是将 application 中有效信息制作成简单数据，包括 this 
 ```
 
 **handleRequest**
+根据传入的 context 及封装好的 middleware，真正处理 http 请求。
+- 初始状态为 404。如果后续没有程序对其改变时，认为没匹配到对应资源(router/file)，即为404。
+- 传入 context 执行 middleware，成功时执行独立方法 `respond`, 失败执行 `onerror`。
+- `onerror` 直接使用 `context.onerror`，这个错误处理方法还用于监听请求完成事件。
+
+*疑问：`onerror` 为什么要二次监听？会重复执行吗？*
+*可能：`catch(onerror)` 处理逻辑上的错误，`onFinished(res, onerror)` 处理代码执行错误*
+
+其中：
+
+`respond` 将 `ctx.status` 及 `ctx.body` 写入到 http response 中。
+
+`onFinished` 来自 [on-finished](https://github.com/jshttp/on-finished) 包，监听请求完成事件。
+
+    Execute a callback when a HTTP request closes, finishes, or errors.
+    Usage: onFinished(res, listener)
 
 ```
   /**
