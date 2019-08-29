@@ -249,6 +249,7 @@ toJSON 则是将 application 中有效信息制作成简单数据，包括 this 
 - `onerror` 直接使用 `context.onerror`，这个错误处理方法还用于监听请求完成事件。
 
 *疑问：`onerror` 为什么要二次监听？会重复执行吗？*
+
 *可能：`catch(onerror)` 处理逻辑上的错误，`onFinished(res, onerror)` 处理代码执行错误*
 
 其中：
