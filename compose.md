@@ -1,5 +1,7 @@
 # koajs/compose 源码解析
 
+源码地址 [koajs/compose](https://github.com/koajs/compose)
+
 `compose` 方法代码很少，但很关键，负责将 middlewares 构建成层级执行的结构。
 
 - 判断参数，需要的类型是 `Array<Function>`

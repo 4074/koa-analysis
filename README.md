@@ -9,5 +9,6 @@
 **目录**
 
 - [koa](./koa.md)
+- [koajs/compose](./compose.md)
 - koa-router
 - koa-bodyparser
